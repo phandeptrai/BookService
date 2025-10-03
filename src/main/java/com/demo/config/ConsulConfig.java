@@ -9,26 +9,27 @@ import java.net.InetAddress;
 import java.util.UUID;
 
 public class ConsulConfig {
+
     private ConsulClient consulClient;
     private String registeredServiceId;
 
     @PostConstruct
     public void registerService() {
-        String consulHost = System.getenv().getOrDefault("CONSUL_HOST", "consul");
+        // Lấy host/port Consul từ env, mặc định localhost
+        String consulHost = System.getenv().getOrDefault("CONSUL_HOST", "localhost");
         int consulPort = Integer.parseInt(System.getenv().getOrDefault("CONSUL_PORT", "8500"));
 
         consulClient = new ConsulClient(consulHost, consulPort);
 
+        // Lấy thông tin service từ env
         String serviceName = System.getenv().getOrDefault("SERVICE_NAME", "book-service");
-        String serviceId = System.getenv().get("SERVICE_ID"); // nếu set ở env thì dùng
         String servicePortStr = System.getenv().getOrDefault("SERVICE_PORT", "8080");
         int servicePort = Integer.parseInt(servicePortStr);
 
-        if (serviceId == null || serviceId.isBlank()) {
-            // tạo id duy nhất (ngắn gọn)
-            serviceId = serviceName + "-" + UUID.randomUUID().toString().substring(0, 8);
-        }
+        // Tạo ID duy nhất cho mỗi instance
+        String serviceId = serviceName + "-" + UUID.randomUUID().toString().substring(0, 8);
 
+        // Lấy địa chỉ host của máy, fallback 127.0.0.1
         String serviceAddress;
         try {
             serviceAddress = InetAddress.getLocalHost().getHostAddress();
@@ -36,22 +37,26 @@ public class ConsulConfig {
             serviceAddress = System.getenv().getOrDefault("SERVICE_ADDRESS", "127.0.0.1");
         }
 
+        // Tạo cấu hình service cho Consul
         NewService service = new NewService();
         service.setId(serviceId);
         service.setName(serviceName);
         service.setAddress(serviceAddress);
         service.setPort(servicePort);
 
+        // Health check
         NewService.Check check = new NewService.Check();
         check.setHttp("http://" + serviceAddress + ":" + servicePort + "/BookServices/health");
         check.setInterval("10s");
-        check.setDeregisterCriticalServiceAfter("1m"); // nếu health fail 1 phút thì tự remove
+        check.setDeregisterCriticalServiceAfter("1m"); // tự remove nếu fail
         service.setCheck(check);
 
+        // Đăng ký service
         consulClient.agentServiceRegister(service);
         registeredServiceId = serviceId;
 
-        System.out.println("✅ Registered service to Consul: id=" + serviceId + " address=" + serviceAddress + ":" + servicePort);
+        System.out.println("✅ Registered service to Consul: id=" + serviceId +
+                " address=" + serviceAddress + ":" + servicePort);
     }
 
     @PreDestroy
