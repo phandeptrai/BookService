@@ -10,6 +10,7 @@ public class Book {
 	private String id;
 	private String name;
 	private String des;
+	private boolean active;  
 	private Status status;	//AVAILABLE,BORROWED
 	
 
@@ -36,6 +37,12 @@ public class Book {
 	}
 	public void setAVAILABLE(Status status) {
 		this.status = status;
+	}
+	public boolean isActive() {
+		return active;
+	}
+	public void setActive(boolean active) {
+		this.active = active;
 	}
 	
 }

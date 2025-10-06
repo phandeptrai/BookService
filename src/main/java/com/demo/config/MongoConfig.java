@@ -31,6 +31,7 @@ public class MongoConfig {
 
     @Bean
     public MongoClient mongoClient() {
+    	System.setProperty("jdk.tls.client.protocols", "TLSv1.2");
         Properties props = loadMongoProperties();
         String connectionString = props.getProperty("mongo.connectionString");
         return MongoClients.create(connectionString);
